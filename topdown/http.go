@@ -60,6 +60,7 @@ var allowedKeyNames = [...]string{
 	"tls_client_key_file",
 	"tls_client_key_env_variable",
 	"tls_insecure_skip_verify",
+	"tls_renegotiation",
 	"tls_server_name",
 	"timeout",
 	"cache",
@@ -348,6 +349,7 @@ func createHTTPRequest(bctx BuiltinContext, obj ast.Object) (*http.Request, *htt
 	var tlsClientCertFile string
 	var tlsClientKeyFile string
 
+	var tlsRenegotiation string
 	var tlsServerName string
 	var body *bytes.Buffer
 	var rawBody *bytes.Buffer
@@ -385,6 +387,7 @@ func createHTTPRequest(bctx BuiltinContext, obj ast.Object) (*http.Request, *htt
 				"tls_client_key",
 				"tls_client_key_file",
 				"tls_client_key_env_variable",
+				"tls_renegotiation",
 				"tls_server_name":
 				return nil, nil, fmt.Errorf("%q must be a string", key)
 			}
@@ -442,6 +445,8 @@ func createHTTPRequest(bctx BuiltinContext, obj ast.Object) (*http.Request, *htt
 			tlsClientKeyFile = strVal
 		case "tls_client_key_env_variable":
 			tlsClientKeyEnvVar = strVal
+		case "tls_renegotiation":
+			tlsRenegotiation = strVal
 		case "tls_server_name":
 			tlsServerName = strVal
 		case "headers":
@@ -568,6 +573,19 @@ func createHTTPRequest(bctx BuiltinContext, obj ast.Object) (*http.Request, *htt
 
 		isTLS = true
 		tlsConfig.RootCAs = pool
+	}
+
+	if tlsRenegotiation != "" {
+		switch tlsRenegotiation {
+		case "never":
+			tlsConfig.Renegotiation = tls.RenegotiateNever
+		case "once":
+			tlsConfig.Renegotiation = tls.RenegotiateOnceAsClient
+		case "freely":
+			tlsConfig.Renegotiation = tls.RenegotiateFreelyAsClient
+		default:
+			return nil, nil, fmt.Errorf("invalid value for tls_renegotiation: %q; valid options are never, once, and freely.", tlsRenegotiation)
+		}
 	}
 
 	if isTLS {
