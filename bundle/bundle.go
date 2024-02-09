@@ -401,6 +401,7 @@ type Reader struct {
 	name                  string
 	persist               bool
 	regoVersion           ast.RegoVersion
+	followSymlinks        bool
 }
 
 // NewReader is deprecated. Use NewCustomReader instead.
@@ -455,6 +456,12 @@ func (r *Reader) WithSkipBundleVerification(skipVerify bool) *Reader {
 // WithProcessAnnotations enables annotation processing during .rego file parsing.
 func (r *Reader) WithProcessAnnotations(yes bool) *Reader {
 	r.processAnnotations = yes
+	return r
+}
+
+// WithFollowSymlinks enables following symlinks when reading the bundle
+func (r *Reader) WithFollowSymlinks(yes bool) *Reader {
+	r.followSymlinks = yes
 	return r
 }
 

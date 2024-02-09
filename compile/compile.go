@@ -66,6 +66,7 @@ type Compiler struct {
 	pruneUnused                  bool                       // whether to extend the entrypoint set for semantic equivalence of built bundles
 	filter                       loader.Filter              // filter to apply to file loader
 	paths                        []string                   // file paths to load. TODO(tsandall): add support for supplying readers for embedded users.
+	followSymlinks               bool                       // follow symlinks when loading files
 	entrypoints                  orderedStringSet           // policy entrypoints required for optimization and certain targets
 	roots                        []string                   // optionally, bundle roots can be provided
 	useRegoAnnotationEntrypoints bool                       // allow compiler to late-bind entrypoints from annotated rules in policies.
@@ -183,6 +184,12 @@ func (c *Compiler) WithPaths(p ...string) *Compiler {
 // WithFilter sets the loader filter to use when reading non-bundle input files.
 func (c *Compiler) WithFilter(filter loader.Filter) *Compiler {
 	c.filter = filter
+	return c
+}
+
+// WithFollowSymlinks sets the option for the file loader to follow symlinks when reading files.
+func (c *Compiler) WithFollowSymlinks(follow bool) *Compiler {
+	c.followSymlinks = follow
 	return c
 }
 

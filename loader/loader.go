@@ -118,6 +118,7 @@ type fileLoader struct {
 	filter     Filter
 	bvc        *bundle.VerificationConfig
 	skipVerify bool
+	followSymlinks bool 
 	files      map[string]bundle.FileInfo
 	opts       ast.ParserOptions
 	fsys       fs.FS
@@ -161,6 +162,11 @@ func (fl *fileLoader) WithBundleVerificationConfig(config *bundle.VerificationCo
 // WithSkipBundleVerification skips verification of a signed bundle
 func (fl *fileLoader) WithSkipBundleVerification(skipVerify bool) FileLoader {
 	fl.skipVerify = skipVerify
+	return fl
+}
+
+func (fl *fileLoader) WithFollowSymlinks(followSymlinks bool) FileLoader {
+	fl.followSymlinks = followSymlinks
 	return fl
 }
 
@@ -257,7 +263,8 @@ func (fl fileLoader) AsBundle(path string) (*bundle.Bundle, error) {
 		WithProcessAnnotations(fl.opts.ProcessAnnotation).
 		WithCapabilities(fl.opts.Capabilities).
 		WithJSONOptions(fl.opts.JSONOptions).
-		WithRegoVersion(fl.opts.RegoVersion)
+		WithRegoVersion(fl.opts.RegoVersion).
+		WithFollowSymlinks(fl.followSymlinks)
 
 	// For bundle directories add the full path in front of module file names
 	// to simplify debugging.

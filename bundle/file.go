@@ -126,6 +126,7 @@ type DirectoryLoader interface {
 	WithFilter(filter filter.LoaderFilter) DirectoryLoader
 	WithPathFormat(PathFormat) DirectoryLoader
 	WithSizeLimitBytes(sizeLimitBytes int64) DirectoryLoader
+	WithFollowSymlinks(followSymlinks bool) DirectoryLoader
 }
 
 type dirLoader struct {
@@ -135,6 +136,7 @@ type dirLoader struct {
 	filter            filter.LoaderFilter
 	pathFormat        PathFormat
 	maxSizeLimitBytes int64
+	followSymlinks    bool
 }
 
 // Normalize root directory, ex "./src/bundle" -> "src/bundle"
@@ -181,6 +183,11 @@ func (d *dirLoader) WithSizeLimitBytes(sizeLimitBytes int64) DirectoryLoader {
 	return d
 }
 
+func (d *dirLoader) WithFollowSymlinks(followSymlinks bool) DirectoryLoader {
+	d.followSymlinks = followSymlinks
+	return d
+}
+
 func formatPath(fileName string, root string, pathFormat PathFormat) string {
 	switch pathFormat {
 	case SlashRooted:
@@ -215,18 +222,25 @@ func (d *dirLoader) NextFile() (*Descriptor, error) {
 			if path == "/Users/tjons/go/src/github.com/tjons/opa/mytest/foo.rego" {
 				fmt.Println("path: ", path)
 			}
-			if info != nil && info.Mode().IsRegular() {
-				if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, false)) {
-					return nil
-				}
-				if d.maxSizeLimitBytes > 0 && info.Size() > d.maxSizeLimitBytes {
-					return fmt.Errorf(maxSizeLimitBytesErrMsg, strings.TrimPrefix(path, "/"), info.Size(), d.maxSizeLimitBytes)
-				}
-				d.files = append(d.files, path)
-			// if mode is symlink and follow symlinks is enabled, add the symlink to the list of files
-			} else if info != nil && info.Mode().IsDir() {
-				if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, true)) {
-					return filepath.SkipDir
+			if info != nil {
+				if info.Mode().IsRegular() {
+					if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, false)) {
+						return nil
+					}
+					if d.maxSizeLimitBytes > 0 && info.Size() > d.maxSizeLimitBytes {
+						return fmt.Errorf(maxSizeLimitBytesErrMsg, strings.TrimPrefix(path, "/"), info.Size(), d.maxSizeLimitBytes)
+					}
+					d.files = append(d.files, path)
+					// if mode is symlink and follow symlinks is enabled, add the symlink to the list of files
+				} else if info.Mode().IsDir() {
+					if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, true)) {
+						return filepath.SkipDir
+					}
+				} else if info.Mode()&os.ModeSymlink != 0 {
+					if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, false)) {
+						return nil
+					}
+					d.files = append(d.files, path)
 				}
 			}
 			return nil
