@@ -212,6 +212,9 @@ func (d *dirLoader) NextFile() (*Descriptor, error) {
 	if d.files == nil {
 		d.files = []string{}
 		err := filepath.Walk(d.root, func(path string, info os.FileInfo, err error) error {
+			if path == "/Users/tjons/go/src/github.com/tjons/opa/mytest/foo.rego" {
+				fmt.Println("path: ", path)
+			}
 			if info != nil && info.Mode().IsRegular() {
 				if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, false)) {
 					return nil
@@ -220,6 +223,7 @@ func (d *dirLoader) NextFile() (*Descriptor, error) {
 					return fmt.Errorf(maxSizeLimitBytesErrMsg, strings.TrimPrefix(path, "/"), info.Size(), d.maxSizeLimitBytes)
 				}
 				d.files = append(d.files, path)
+			// if mode is symlink and follow symlinks is enabled, add the symlink to the list of files
 			} else if info != nil && info.Mode().IsDir() {
 				if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, true)) {
 					return filepath.SkipDir
